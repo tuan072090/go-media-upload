@@ -17,8 +17,8 @@ import (
 
 var currentTime = time.Now().Format("2006-01-02")
 var formatDate = strings.Split(currentTime, "-")
-
-const maxUploadSize = 2 * 1024 * 1024 // 2 mb
+var PORT = "8080";
+const maxUploadSize = 4 * 1024 * 1024 // 4 mb
 
 
 var year = formatDate[0]
@@ -27,13 +27,13 @@ var date = formatDate[2]
 var uploadPath = year+"/"+month+"/"+date
 
 func main() {
-	http.HandleFunc("/upload", uploadFileHandler())
+	http.HandleFunc("/up", uploadFileHandler())
 
 	fs := http.FileServer(http.Dir(uploadPath))
 	http.Handle("/files/", http.StripPrefix("/files", fs))
 
 	// log.Print("Server started on localhost:8080, use /upload for uploading files and /files/{fileName} for downloading")
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	log.Fatal(http.ListenAndServe(":"+PORT, nil))
 }
 
 func uploadFileHandler() http.HandlerFunc {
@@ -85,7 +85,9 @@ func uploadFileHandler() http.HandlerFunc {
 			renderError(w, "CANT_READ_FILE_TYPE", http.StatusInternalServerError)
 			return
 		}
-		newPath := filepath.Join(uploadPath, fileName+fileEndings[0])
+
+		fullFileName := fileName+fileEndings[0]
+		newPath := filepath.Join(uploadPath, fullFileName)
 		fmt.Printf("FileType: %s, File: %s\n", detectedFileType, newPath)
 
 		// write file
@@ -100,7 +102,7 @@ func uploadFileHandler() http.HandlerFunc {
 			renderError(w, "CANT_WRITE_FILE", http.StatusInternalServerError)
 			return
 		}
-		w.Write([]byte("SUCCESS"))
+		w.Write([]byte("/files/"+fullFileName))
 	})
 }
 
