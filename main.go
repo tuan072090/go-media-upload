@@ -11,22 +11,35 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"time"
-	"strings"
 )
 
-var currentTime = time.Now().Format("2006-01-02")
-var formatDate = strings.Split(currentTime, "-")
-var PORT = "8080";
+var PORT = "4002";
+
 const maxUploadSize = 4 * 1024 * 1024 // 4 mb
 
 
-var year = formatDate[0]
-var month = formatDate[1]
-var date = formatDate[2]
-var uploadPath = year+"/"+month+"/"+date
+var baseLocalUrl = "http://localhost:"+PORT
+var baseDevUrl = "https://media.dev.rebateton.com"
+var baseProdUrl = "https://media.rebateton.com:"
+
+
+var env = os.Getenv("ENV")
+
+
+
+var year, month, day = time.Now().Date()
+
+var yearStr = strconv.Itoa(year)
+var monthStr = month.String()
+var dayStr = strconv.Itoa(day)
+
+var uploadPath = "upload/"+yearStr+"/"+monthStr+"/"+dayStr
 
 func main() {
+	fmt.Println("Listen on port ",PORT)
+
 	http.HandleFunc("/up", uploadFileHandler())
 
 	fs := http.FileServer(http.Dir(uploadPath))
@@ -56,7 +69,7 @@ func uploadFileHandler() http.HandlerFunc {
 		}
 
 		// parse and validate file and post parameters
-		file, _, err := r.FormFile("uploadFile")
+		file, _, err := r.FormFile("file")
 		if err != nil {
 			renderError(w, "INVALID_FILE", http.StatusBadRequest)
 			return
@@ -79,7 +92,7 @@ func uploadFileHandler() http.HandlerFunc {
 			renderError(w, "INVALID_FILE_TYPE", http.StatusBadRequest)
 			return
 		}
-		fileName := randToken(12)
+		fileName := randToken(5)
 		fileEndings, err := mime.ExtensionsByType(detectedFileType)
 		if err != nil {
 			renderError(w, "CANT_READ_FILE_TYPE", http.StatusInternalServerError)
@@ -88,12 +101,12 @@ func uploadFileHandler() http.HandlerFunc {
 
 		fullFileName := fileName+fileEndings[0]
 		newPath := filepath.Join(uploadPath, fullFileName)
-		fmt.Printf("FileType: %s, File: %s\n", detectedFileType, newPath)
+		//fmt.Printf("FileType: %s, File: %s\n", detectedFileType, newPath)
 
 		// write file
 		newFile, err := os.Create(newPath)
 		if err != nil {
-			fmt.Println(err)
+			//fmt.Println(err)
 			renderError(w, "CANT_WRITE_FILE", http.StatusInternalServerError)
 			return
 		}
@@ -102,7 +115,15 @@ func uploadFileHandler() http.HandlerFunc {
 			renderError(w, "CANT_WRITE_FILE", http.StatusInternalServerError)
 			return
 		}
-		w.Write([]byte("/files/"+fullFileName))
+
+		//	tùy môi trường
+		if env == "development"{
+			w.Write([]byte(baseDevUrl+"/files/"+fullFileName))
+		}else if env == "production"{
+			w.Write([]byte(baseProdUrl+"/files/"+fullFileName))
+		}else {
+			w.Write([]byte(baseLocalUrl+"/files/"+fullFileName))
+		}
 	})
 }
 
