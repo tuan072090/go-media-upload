@@ -1,9 +1,8 @@
-
-
 package main
 
 import (
 	"crypto/rand"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -15,19 +14,24 @@ import (
 	"time"
 )
 
-var PORT = "4002";
+var PORT = "4002"
 
-const maxUploadSize = 4 * 1024 * 1024 // 4 mb
+const maxUploadSize = 5 * 1024 * 1024 // 5 mb
 
-
-var baseLocalUrl = "http://localhost:"+PORT
-var baseDevUrl = "https://media.dev.rebateton.com"
+var baseLocalUrl = "http://localhost:" + PORT
+var baseDevUrl = "https://upload.dev.rebateton.com"
 var baseProdUrl = "https://media.rebateton.com:"
-
 
 var env = os.Getenv("ENV")
 
-
+type Response = struct {
+	Url string `json:"url"`
+}
+type ErrorResponse = struct {
+	Message string `json:"message"`
+	Status  int    `json:"status"`
+	Code    int    `json:"code"`
+}
 
 var year, month, day = time.Now().Date()
 
@@ -35,10 +39,10 @@ var yearStr = strconv.Itoa(year)
 var monthStr = month.String()
 var dayStr = strconv.Itoa(day)
 
-var uploadPath = "upload/"+yearStr+"/"+monthStr+"/"+dayStr
+var uploadPath = "upload/" + yearStr + "/" + monthStr + "/" + dayStr
 
 func main() {
-	fmt.Println("Listen on port ",PORT)
+	fmt.Println("Listen on port ", PORT)
 
 	http.HandleFunc("/up", uploadFileHandler())
 
@@ -51,6 +55,15 @@ func main() {
 
 func uploadFileHandler() http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		// fmt.Println("request vo.....", (*r).Method)
+
+		//	config CORS
+		setupResponse(&w, r)
+		if (*r).Method == "OPTIONS" {
+			return
+		}
+
 		// check folder exist and create folder
 		if _, err := os.Stat(uploadPath); err != nil {
 			if os.IsNotExist(err) {
@@ -62,6 +75,8 @@ func uploadFileHandler() http.HandlerFunc {
 			}
 		}
 		// validate file size
+		// fmt.Println("maxUploadSize", maxUploadSize)
+
 		r.Body = http.MaxBytesReader(w, r.Body, maxUploadSize)
 		if err := r.ParseMultipartForm(maxUploadSize); err != nil {
 			renderError(w, "FILE_TOO_BIG", http.StatusBadRequest)
@@ -86,7 +101,7 @@ func uploadFileHandler() http.HandlerFunc {
 		switch detectedFileType {
 		case "image/jpeg", "image/jpg":
 		case "image/gif", "image/png":
-		case "application/pdf":
+			// case "application/pdf":
 			break
 		default:
 			renderError(w, "INVALID_FILE_TYPE", http.StatusBadRequest)
@@ -99,7 +114,7 @@ func uploadFileHandler() http.HandlerFunc {
 			return
 		}
 
-		fullFileName := fileName+fileEndings[0]
+		fullFileName := fileName + fileEndings[0]
 		newPath := filepath.Join(uploadPath, fullFileName)
 		//fmt.Printf("FileType: %s, File: %s\n", detectedFileType, newPath)
 
@@ -116,20 +131,50 @@ func uploadFileHandler() http.HandlerFunc {
 			return
 		}
 
-		//	tùy môi trường
-		if env == "development"{
-			w.Write([]byte(baseDevUrl+"/files/"+fullFileName))
-		}else if env == "production"{
-			w.Write([]byte(baseProdUrl+"/files/"+fullFileName))
-		}else {
-			w.Write([]byte(baseLocalUrl+"/files/"+fullFileName))
+		url := baseLocalUrl + "/files/" + fullFileName
+
+		//	set url tùy môi trường
+		if env == "development" {
+			url = baseDevUrl + "/files/" + fullFileName
+		} else if env == "production" {
+			url = baseProdUrl + "/files/" + fullFileName
 		}
+
+		//	set response payload
+		res := Response{url}
+
+		js, err := json.Marshal(res)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(js)
 	})
 }
 
 func renderError(w http.ResponseWriter, message string, statusCode int) {
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusBadRequest)
-	w.Write([]byte(message))
+
+	res := ErrorResponse{
+		message,
+		http.StatusBadRequest,
+		http.StatusBadRequest,
+	}
+	js, err := json.Marshal(res)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Write(js)
+}
+
+func setupResponse(w *http.ResponseWriter, req *http.Request) {
+	(*w).Header().Set("Access-Control-Allow-Origin", "*")
+	(*w).Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT")
+	(*w).Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
 }
 
 func randToken(len int) string {
@@ -156,4 +201,3 @@ func createDirectory(dirName string) bool {
 
 	return false
 }
-
