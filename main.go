@@ -20,7 +20,7 @@ const maxUploadSize = 5 * 1024 * 1024 // 5 mb
 
 var baseLocalUrl = "http://localhost:" + PORT
 var baseDevUrl = "https://upload.dev.rebateton.com"
-var baseProdUrl = "https://media.rebateton.com:"
+var baseProdUrl = "https://upload.rebateton.com:"
 
 var env = os.Getenv("ENV")
 
