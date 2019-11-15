@@ -11,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -20,7 +21,7 @@ const maxUploadSize = 5 * 1024 * 1024 // 5 mb
 
 var baseLocalUrl = "http://localhost:" + PORT
 var baseDevUrl = "https://upload.dev.rebateton.com"
-var baseProdUrl = "https://upload.rebateton.com:"
+var baseProdUrl = "https://upload.rebateton.com"
 
 var env = os.Getenv("ENV")
 
@@ -52,7 +53,7 @@ func main() {
 	http.Handle("/files/", http.StripPrefix("/files", fs))
 	//meete
 	mt := http.FileServer(http.Dir(meetePath))
-	http.Handle("/mtfiles/", http.StripPrefix("/mtfiles", mt))
+	http.Handle("/meete/", http.StripPrefix("/meete", mt))
 
 	// log.Print("Server started on localhost:8080, use /upload for uploading files and /files/{fileName} for downloading")
 	log.Fatal(http.ListenAndServe(":"+PORT, nil))
@@ -60,8 +61,6 @@ func main() {
 
 func uploadFileHandler() http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
-		// fmt.Println("request vo.....", (*r).Method)
 
 		//	config CORS
 		setupResponse(&w, r)
@@ -163,7 +162,8 @@ func uploadFileHandler() http.HandlerFunc {
 func uploadFileMeete() http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-		// fmt.Println("request vo.....", (*r).Method)
+		//auth := r.Header.Get("Authorization")
+		//fmt.Println("auth.....", auth)
 
 		//	config CORS
 		setupResponse(&w, r)
@@ -191,7 +191,7 @@ func uploadFileMeete() http.HandlerFunc {
 		}
 
 		// parse and validate file and post parameters
-		file, _, err := r.FormFile("file")
+		file, header, err := r.FormFile("file")
 		if err != nil {
 			renderError(w, "INVALID_FILE", http.StatusBadRequest)
 			return
@@ -203,6 +203,7 @@ func uploadFileMeete() http.HandlerFunc {
 			return
 		}
 
+		fileName := header.Filename
 		// check file type, detectcontenttype only needs the first 512 bytes
 		detectedFileType := http.DetectContentType(fileBytes)
 		switch detectedFileType {
@@ -214,14 +215,8 @@ func uploadFileMeete() http.HandlerFunc {
 			renderError(w, "INVALID_FILE_TYPE", http.StatusBadRequest)
 			return
 		}
-		fileName := randToken(5)
-		fileEndings, err := mime.ExtensionsByType(detectedFileType)
-		if err != nil {
-			renderError(w, "CANT_READ_FILE_TYPE", http.StatusInternalServerError)
-			return
-		}
 
-		fullFileName := fileName + fileEndings[0]
+		fullFileName := strings.Join(strings.Fields(fileName), "")
 		newPath := filepath.Join(meetePath, fullFileName)
 		//fmt.Printf("FileType: %s, File: %s\n", detectedFileType, newPath)
 
@@ -238,13 +233,13 @@ func uploadFileMeete() http.HandlerFunc {
 			return
 		}
 
-		url := baseLocalUrl + "/files/" + fullFileName
+		url := baseLocalUrl + "/meete/" + fullFileName
 
 		//	set url tùy môi trường
 		if env == "development" {
-			url = baseDevUrl + "/files/" + fullFileName
+			url = baseDevUrl + "/meete/" + fullFileName
 		} else if env == "production" {
-			url = baseProdUrl + "/files/" + fullFileName
+			url = baseProdUrl + "/meete/" + fullFileName
 		}
 
 		//	set response payload
