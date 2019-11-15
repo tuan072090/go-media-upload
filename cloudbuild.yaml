@@ -1,6 +1,15 @@
 steps:
   - name: 'gcr.io/cloud-builders/docker'
-    args: ["build", "-t", "gcr.io/rebateton-c3b5a/rebateton-media-upload:$REVISION_ID", "."]
+    args: ["build", "-t", "gcr.io/$PROJECT_ID/rebateton-media-upload:$REVISION_ID", "."]
 
   - name: 'gcr.io/cloud-builders/docker'
-    args: ["push", "gcr.io/rebateton-c3b5a/rebateton-media-upload:$REVISION_ID"]
+    args: ["push", "gcr.io/$PROJECT_ID/rebateton-media-upload:$REVISION_ID"]
+
+  - name: 'gcr.io/cloud-builders/gcloud'
+    args: ['compute', 'ssh', 'rebateton-dev-master']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ["pull", "gcr.io/$PROJECT_ID/rebateton-media-upload:$REVISION_ID"]
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ["service", "update", "--image", "gcr.io/$PROJECT_ID/rebateton-media-upload:$REVISION_ID", "--with-registry-auth", "rebateton_media_upload"]
