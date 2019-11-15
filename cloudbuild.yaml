@@ -1,0 +1,6 @@
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ["build", "-t", "gcr.io/rebateton-c3b5a/rebateton-media-upload:$REVISION_ID", "."]
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ["push", "gcr.io/rebateton-c3b5a/rebateton-media-upload:$REVISION_ID"]
