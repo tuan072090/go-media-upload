@@ -8,5 +8,5 @@ steps:
   - name: 'gcr.io/cloud-builders/gcloud'
     args: [
       'compute', 'ssh', 'rebateton-dev-master', '--zone=us-central1-c',
-      "--command='sudo docker pull gcr.io/$PROJECT_ID/rebateton-media-upload:$REVISION_ID'"
+      "--command='sudo docker pull gcr.io/$PROJECT_ID/rebateton-media-upload:$REVISION_ID && ls -la'"
     ]
