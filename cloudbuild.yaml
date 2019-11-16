@@ -6,7 +6,7 @@ steps:
     id: 'PUSH'
     args: ["push", "gcr.io/$PROJECT_ID/rebateton-media-upload:$REVISION_ID"]
 
-  - name: 'gcr.io/$PROJECT_ID/remote-builder'
+  - name: 'gcr.io/cloud-builders/gcloud'
     args: [
       'compute', 'ssh', 'rebateton-dev-master', '--zone=us-central1-c',
       "--command=", "ls", "-la"
