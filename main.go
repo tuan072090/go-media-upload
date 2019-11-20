@@ -28,6 +28,7 @@ var env = os.Getenv("ENV")
 type Response = struct {
 	Url string `json:"url"`
 }
+
 type ErrorResponse = struct {
 	Message string `json:"message"`
 	Status  int    `json:"status"`
@@ -44,7 +45,7 @@ var uploadPath = "upload/" + yearStr + "/" + monthStr + "/" + dayStr
 var meetePath = "meete/" + yearStr + "/" + monthStr + "/" + dayStr
 
 func main() {
-	fmt.Println("Listen on port ", PORT)
+	fmt.Println("Listen on port....", PORT)
 
 	http.HandleFunc("/up", uploadFileHandler())
 	http.HandleFunc("/meete", uploadFileMeete())
@@ -75,7 +76,6 @@ func uploadFileHandler() http.HandlerFunc {
 				createDirectory(uploadPath)
 			} else {
 				// other error
-
 			}
 		}
 		// validate file size
