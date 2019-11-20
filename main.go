@@ -19,6 +19,7 @@ var PORT = "4002"
 
 const maxUploadSize = 5 * 1024 * 1024 // 5 mb
 
+//	base URL của 3 môi trường
 var baseLocalUrl = "http://localhost:" + PORT
 var baseDevUrl = "https://upload.dev.rebateton.com"
 var baseProdUrl = "https://upload.rebateton.com"
@@ -37,8 +38,23 @@ type ErrorResponse = struct {
 
 var year, month, day = time.Now().Date()
 
+var monthMapping = map[string]string{
+	"January":   "1",
+	"February":  "2",
+	"March":     "3",
+	"April":     "4",
+	"May":       "5",
+	"June":      "6",
+	"July":      "7",
+	"August":    "8",
+	"September": "9",
+	"October":   "10",
+	"November":  "11",
+	"December":  "12",
+}
+
 var yearStr = strconv.Itoa(year)
-var monthStr = month.String()
+var monthStr = monthMapping[month.String()]
 var dayStr = strconv.Itoa(day)
 
 var uploadPath = "upload/" + yearStr + "/" + monthStr + "/" + dayStr
@@ -50,14 +66,34 @@ func main() {
 	http.HandleFunc("/up", uploadFileHandler())
 	http.HandleFunc("/meete", uploadFileMeete())
 
-	fs := http.FileServer(http.Dir(uploadPath))
-	http.Handle("/files/", http.StripPrefix("/files", fs))
-	//meete
-	mt := http.FileServer(http.Dir(meetePath))
-	http.Handle("/meete/", http.StripPrefix("/meete", mt))
+	//	request rebateton file
+	http.Handle("/files/", handleQueryFile())
+
+	//	request Meete file
+	http.Handle("/meete/", handleQueryMeeteFile())
 
 	// log.Print("Server started on localhost:8080, use /upload for uploading files and /files/{fileName} for downloading")
 	log.Fatal(http.ListenAndServe(":"+PORT, nil))
+}
+
+func handleQueryFile() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requestUri := r.RequestURI;
+		filePath := strings.TrimPrefix(requestUri, "/files")
+
+		//w.Write(fs)
+		http.ServeFile(w, r, "upload"+filePath)
+	})
+}
+
+func handleQueryMeeteFile() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		requestUri := r.RequestURI;
+		filePath := strings.TrimPrefix(requestUri, "/")
+
+		//w.Write(fs)
+		http.ServeFile(w, r, filePath)
+	})
 }
 
 func uploadFileHandler() http.HandlerFunc {
@@ -135,13 +171,15 @@ func uploadFileHandler() http.HandlerFunc {
 			return
 		}
 
-		url := baseLocalUrl + "/files/" + fullFileName
+		resultPath := strings.TrimPrefix(newPath, "upload")
+
+		url := baseLocalUrl + "/files" + resultPath
 
 		//	set url tùy môi trường
 		if env == "development" {
-			url = baseDevUrl + "/files/" + fullFileName
+			url = baseDevUrl + "/files" + resultPath
 		} else if env == "production" {
-			url = baseProdUrl + "/files/" + fullFileName
+			url = baseProdUrl + "/files" + resultPath
 		}
 
 		//	set response payload
@@ -191,7 +229,7 @@ func uploadFileMeete() http.HandlerFunc {
 		}
 
 		// parse and validate file and post parameters
-		file, header, err := r.FormFile("file")
+		file, _, err := r.FormFile("file")
 		if err != nil {
 			renderError(w, "INVALID_FILE", http.StatusBadRequest)
 			return
@@ -203,7 +241,8 @@ func uploadFileMeete() http.HandlerFunc {
 			return
 		}
 
-		fileName := header.Filename
+		fileName := randToken(5)
+
 		// check file type, detectcontenttype only needs the first 512 bytes
 		detectedFileType := http.DetectContentType(fileBytes)
 		switch detectedFileType {
@@ -216,9 +255,14 @@ func uploadFileMeete() http.HandlerFunc {
 			return
 		}
 
-		fullFileName := strings.Join(strings.Fields(fileName), "")
+		fileEndings, err := mime.ExtensionsByType(detectedFileType)
+		if err != nil {
+			renderError(w, "CANT_READ_FILE_TYPE", http.StatusInternalServerError)
+			return
+		}
+
+		fullFileName := fileName + fileEndings[0]
 		newPath := filepath.Join(meetePath, fullFileName)
-		//fmt.Printf("FileType: %s, File: %s\n", detectedFileType, newPath)
 
 		// write file
 		newFile, err := os.Create(newPath)
@@ -233,13 +277,13 @@ func uploadFileMeete() http.HandlerFunc {
 			return
 		}
 
-		url := baseLocalUrl + "/meete/" + fullFileName
+		url := baseLocalUrl + "/" + newPath
 
 		//	set url tùy môi trường
 		if env == "development" {
-			url = baseDevUrl + "/meete/" + fullFileName
+			url = baseDevUrl + "/" + newPath
 		} else if env == "production" {
-			url = baseProdUrl + "/meete/" + fullFileName
+			url = baseProdUrl + "/" + newPath
 		}
 
 		//	set response payload
