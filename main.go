@@ -17,7 +17,7 @@ import (
 
 var PORT = "4002"
 
-const maxUploadSize = 5 * 1024 * 1024 // 5 mb
+const maxUploadSize = 10 * 1024 * 1024 // 5 mb
 
 //	base URL của 3 môi trường
 var baseLocalUrl = "http://localhost:" + PORT
@@ -78,7 +78,7 @@ func main() {
 
 func handleQueryFile() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		requestUri := r.RequestURI;
+		requestUri := r.RequestURI
 		filePath := strings.TrimPrefix(requestUri, "/files")
 
 		//w.Write(fs)
@@ -88,7 +88,7 @@ func handleQueryFile() http.Handler {
 
 func handleQueryMeeteFile() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		requestUri := r.RequestURI;
+		requestUri := r.RequestURI
 		filePath := strings.TrimPrefix(requestUri, "/")
 
 		//w.Write(fs)
