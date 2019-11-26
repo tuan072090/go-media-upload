@@ -82,6 +82,7 @@ func handleQueryFile() http.Handler {
 		filePath := strings.TrimPrefix(requestUri, "/files")
 
 		//w.Write(fs)
+		w.Header().Set("Cache-Control", "max-age=604800")
 		http.ServeFile(w, r, "upload"+filePath)
 	})
 }
@@ -92,6 +93,7 @@ func handleQueryMeeteFile() http.Handler {
 		filePath := strings.TrimPrefix(requestUri, "/")
 
 		//w.Write(fs)
+		w.Header().Set("Cache-Control", "public,max-age=604800")
 		http.ServeFile(w, r, filePath)
 	})
 }
