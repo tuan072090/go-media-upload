@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/disintegration/imaging"
 	"io/ioutil"
 	"mime"
@@ -15,7 +16,7 @@ func UploadFileMeete() http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		//auth := r.Header.Get("Authorization")
-		//fmt.Println("auth.....", auth)
+		fmt.Println("upload Meete.....")
 
 		//	config CORS
 		setupResponse(&w, r)
