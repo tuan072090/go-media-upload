@@ -4,23 +4,18 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"rt-media-upload/handlers"
+	"go-media-upload/services"
+	config "go-media-upload/share"
 )
 
 
 func main() {
-	fmt.Println("Listen on port....", handlers.PORT)
+	fmt.Println("Listen on port....", config.PORT)
 
-	http.HandleFunc("/up", handlers.UploadFileHandler())
-	http.HandleFunc("/meete", handlers.UploadFileMeete())
-
-	//	request rebateton file
-	http.Handle("/files/", handlers.HandleQueryFile())
-
-	//	request Meete file
-	http.Handle("/meete/", handlers.HandleQueryMeeteFile())
+	http.HandleFunc("/upload", services.UploadFileHandler())
+	http.Handle("/files/", services.HandleQueryFile())
 
 	// log.Print("Server started on localhost:8080, use /upload for uploading files and /files/{fileName} for downloading")
-	log.Fatal(http.ListenAndServe(":"+handlers.PORT, nil))
+	log.Fatal(http.ListenAndServe(":"+config.PORT, nil))
 }
 

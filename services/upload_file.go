@@ -1,10 +1,11 @@
-package handlers
+package services
 
 import (
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"github.com/disintegration/imaging"
+	config "go-media-upload/share"
 	"io/ioutil"
 	"mime"
 	"net/http"
@@ -15,16 +16,7 @@ import (
 	"time"
 )
 
-var PORT = "4002"
-
-const maxUploadSize = 10 * 1024 * 1024 // 10 mb
-
-//	base URL của 3 môi trường
-var baseLocalUrl = "http://localhost:" + PORT
-var baseDevUrl = "https://upload.dev.rebateton.com"
-var baseProdUrl = "https://upload.rebateton.com"
-
-var env = os.Getenv("ENV")
+var maxUploadSize = config.GetMaxUploadSize() // 10 mb
 
 type Response = struct {
 	Url string `json:"url"`
@@ -57,10 +49,11 @@ var yearStr = strconv.Itoa(year)
 var monthStr = monthMapping[month.String()]
 var dayStr = strconv.Itoa(day)
 
-var meetePath = "meete/" + yearStr + "/" + monthStr + "/" + dayStr
 var uploadPath = "upload/" + yearStr + "/" + monthStr + "/" + dayStr
 
 func UploadFileHandler() http.HandlerFunc {
+	print("MAX_UPLOAD_SIZE: ", maxUploadSize)
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		//	config CORS
@@ -89,12 +82,14 @@ func UploadFileHandler() http.HandlerFunc {
 
 		// parse and validate file and post parameters
 		file, _, err := r.FormFile("file")
+		print("err......", err)
 		if err != nil {
 			renderError(w, "INVALID_FILE", http.StatusBadRequest)
 			return
 		}
 		defer file.Close()
 		fileBytes, err := ioutil.ReadAll(file)
+		print("err......", err)
 		if err != nil {
 			renderError(w, "INVALID_FILE", http.StatusBadRequest)
 			return
@@ -159,14 +154,7 @@ func UploadFileHandler() http.HandlerFunc {
 		}
 
 
-		url := baseLocalUrl + "/files" + resultPath
-
-		//	set url tùy môi trường
-		if env == "development" {
-			url = baseDevUrl + "/files" + resultPath
-		} else if env == "production" {
-			url = baseProdUrl + "/files" + resultPath
-		}
+		url := config.GetMediaUrl() + "/files" + resultPath
 
 		//	set response payload
 		res := Response{url}

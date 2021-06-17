@@ -1,4 +1,4 @@
-module rt-media-upload
+module go-media-upload
 
 go 1.13
 
